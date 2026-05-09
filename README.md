@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # TuringLab Project - Ömer {Soyadı}
 
 ---
@@ -51,7 +50,3 @@ Bu motor, şeridi temsil etmek için `dict[int, str]` (sparse tape) yapısını 
 - Kod stili: PEP 8
 - Test: pytest
 - Bağımlılıklar: PyYAML, pytest
-=======
-[TuringLab_Ogrenci_ElKitabi.pdf](https://github.com/user-attachments/files/27517647/TuringLab_Ogrenci_ElKitabi.pdf)
-# turinglab--mer-at-c-
->>>>>>> 4583798d3c30f4193c54f74fc2f49f02269926ea
