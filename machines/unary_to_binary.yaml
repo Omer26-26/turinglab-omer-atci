@@ -1,0 +1,97 @@
+name: "unary_to_binary"
+description: "Converts unary (1s) to binary. Example: 111 -> 11 (3 in binary)"
+states: [q0, q_seek, q_go_end, q_carry, q_sh, q_sh0, q_sh1,
+         q_rew, q_wipe, q_to_sep, q_to_bend, q_grab,
+         q_g0, q_g1, q_ret, q_done, q_acc]
+input_alphabet: ["1"]
+tape_alphabet: ["1", "0", "B", "#", "X", "Y"]
+blank: "B"
+start_state: q0
+accept_states: [q_acc]
+reject_states: []
+transitions:
+  # ============ COUNTING PHASE ============
+  - {state: q0, read: "1", next: q_seek, write: "X", move: R}
+  - {state: q0, read: "X", next: q0, write: "X", move: R}
+  - {state: q0, read: "#", next: q_wipe, write: "#", move: L}
+  - {state: q0, read: "B", next: q_acc, write: "0", move: S}
+
+  - {state: q_seek, read: "1", next: q_seek, write: "1", move: R}
+  - {state: q_seek, read: "X", next: q_seek, write: "X", move: R}
+  - {state: q_seek, read: "#", next: q_go_end, write: "#", move: R}
+  - {state: q_seek, read: "B", next: q_go_end, write: "#", move: R}
+
+  - {state: q_go_end, read: "0", next: q_go_end, write: "0", move: R}
+  - {state: q_go_end, read: "1", next: q_go_end, write: "1", move: R}
+  - {state: q_go_end, read: "B", next: q_carry, write: "B", move: L}
+
+  - {state: q_carry, read: "0", next: q_rew, write: "1", move: L}
+  - {state: q_carry, read: "1", next: q_carry, write: "0", move: L}
+  - {state: q_carry, read: "#", next: q_sh, write: "#", move: R}
+
+  - {state: q_sh, read: "0", next: q_sh0, write: "1", move: R}
+  - {state: q_sh, read: "B", next: q_rew, write: "1", move: L}
+  - {state: q_sh0, read: "0", next: q_sh0, write: "0", move: R}
+  - {state: q_sh0, read: "1", next: q_sh1, write: "0", move: R}
+  - {state: q_sh0, read: "B", next: q_rew, write: "0", move: L}
+  - {state: q_sh1, read: "0", next: q_sh0, write: "1", move: R}
+  - {state: q_sh1, read: "1", next: q_sh1, write: "1", move: R}
+  - {state: q_sh1, read: "B", next: q_rew, write: "1", move: L}
+
+  - {state: q_rew, read: "0", next: q_rew, write: "0", move: L}
+  - {state: q_rew, read: "1", next: q_rew, write: "1", move: L}
+  - {state: q_rew, read: "#", next: q_rew, write: "#", move: L}
+  - {state: q_rew, read: "X", next: q_rew, write: "X", move: L}
+  - {state: q_rew, read: "B", next: q0, write: "B", move: R}
+
+  # ============ CLEANUP PHASE ============
+  # Tape after counting: XX...X#binary
+  # Goal: erase X's and '#', shift binary left so only binary remains.
+  # Strategy: copy binary digits from RIGHT to LEFT into erased positions.
+
+  # Step 1: Erase all X marks going left
+  - {state: q_wipe, read: "X", next: q_wipe, write: "B", move: L}
+  - {state: q_wipe, read: "B", next: q_to_sep, write: "B", move: R}
+
+  # Step 2: Scan right past blanks to find '#'
+  - {state: q_to_sep, read: "B", next: q_to_sep, write: "B", move: R}
+  - {state: q_to_sep, read: "#", next: q_to_bend, write: "#", move: R}
+
+  # Step 3: Scan right past binary digits to find end
+  - {state: q_to_bend, read: "0", next: q_to_bend, write: "0", move: R}
+  - {state: q_to_bend, read: "1", next: q_to_bend, write: "1", move: R}
+  - {state: q_to_bend, read: "Y", next: q_to_bend, write: "Y", move: R}
+  # At end of binary → go left to grab last uncopied digit
+  - {state: q_to_bend, read: "B", next: q_grab, write: "B", move: L}
+
+  # Step 4: Find rightmost uncopied digit (skip Y's)
+  - {state: q_grab, read: "Y", next: q_grab, write: "Y", move: L}
+  - {state: q_grab, read: "0", next: q_g0, write: "Y", move: L}
+  - {state: q_grab, read: "1", next: q_g1, write: "Y", move: L}
+  # All digits copied (hit '#') → go to done (erase Y's and '#')
+  - {state: q_grab, read: "#", next: q_done, write: "B", move: R}
+
+  # Step 5: Carry grabbed digit left to leftmost blank
+  - {state: q_g0, read: "0", next: q_g0, write: "0", move: L}
+  - {state: q_g0, read: "1", next: q_g0, write: "1", move: L}
+  - {state: q_g0, read: "#", next: q_g0, write: "#", move: L}
+  - {state: q_g0, read: "Y", next: q_g0, write: "Y", move: L}
+  - {state: q_g0, read: "B", next: q_ret, write: "0", move: R}
+
+  - {state: q_g1, read: "0", next: q_g1, write: "0", move: L}
+  - {state: q_g1, read: "1", next: q_g1, write: "1", move: L}
+  - {state: q_g1, read: "#", next: q_g1, write: "#", move: L}
+  - {state: q_g1, read: "Y", next: q_g1, write: "Y", move: L}
+  - {state: q_g1, read: "B", next: q_ret, write: "1", move: R}
+
+  # Step 6: Return right to grab next digit
+  - {state: q_ret, read: "0", next: q_ret, write: "0", move: R}
+  - {state: q_ret, read: "1", next: q_ret, write: "1", move: R}
+  - {state: q_ret, read: "#", next: q_ret, write: "#", move: R}
+  - {state: q_ret, read: "Y", next: q_ret, write: "Y", move: R}
+  # When we hit blank at end of binary, go left to grab next digit
+  - {state: q_ret, read: "B", next: q_grab, write: "B", move: L}
+
+  # Step 7: Final cleanup — erase remaining Y's
+  - {state: q_done, read: "Y", next: q_done, write: "B", move: R}
+  - {state: q_done, read: "B", next: q_acc, write: "B", move: L}

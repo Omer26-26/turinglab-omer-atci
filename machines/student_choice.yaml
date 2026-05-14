@@ -1,0 +1,25 @@
+name: "student_choice"
+description: "Checks if parentheses are balanced. Example: (()()) -> Accept"
+states: [q_find_closing, q_find_opening, q_verify, q_accept, q_reject]
+input_alphabet: ["(", ")"]
+tape_alphabet: ["(", ")", "X", "B"]
+blank: "B"
+start_state: q_find_closing
+accept_states: [q_accept]
+reject_states: [q_reject]
+transitions:
+  # Scan right for the first ')'
+  - {state: q_find_closing, read: "(", next: q_find_closing, write: "(", move: R}
+  - {state: q_find_closing, read: "X", next: q_find_closing, write: "X", move: R}
+  - {state: q_find_closing, read: ")", next: q_find_opening, write: "X", move: L}
+  - {state: q_find_closing, read: "B", next: q_verify, write: "B", move: L}
+
+  # Scan left for the matching '('
+  - {state: q_find_opening, read: "X", next: q_find_opening, write: "X", move: L}
+  - {state: q_find_opening, read: "(", next: q_find_closing, write: "X", move: R}
+  - {state: q_find_opening, read: "B", next: q_reject, write: "B", move: S} # No matching ( for a )
+
+  # Verification: check if any '(' remains
+  - {state: q_verify, read: "X", next: q_verify, write: "X", move: L}
+  - {state: q_verify, read: "(", next: q_reject, write: "(", move: S}
+  - {state: q_verify, read: "B", next: q_accept, write: "B", move: S}

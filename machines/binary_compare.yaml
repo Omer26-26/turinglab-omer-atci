@@ -1,0 +1,110 @@
+name: "binary_compare"
+description: "Accepts if N1 > N2. Input format: N1#N2"
+states: [q_m1, q_cross, q_m2, q_back, q_n1end, q_rest, q_cmp,
+         q_c0, q_c1, q_f0, q_f1, q_bk, q_acc, q_rej]
+input_alphabet: ["0", "1", "#"]
+tape_alphabet: ["0", "1", "#", "a", "b", "c", "d", "B"]
+blank: "B"
+start_state: q_m1
+accept_states: [q_acc]
+reject_states: [q_rej]
+transitions:
+  # ============================================================
+  # PHASE 1: LENGTH COMPARISON
+  # Mark N1 digits as a(was 0)/b(was 1), N2 digits as c(was 0)/d(was 1).
+  # One digit from each per round. When one side runs out, length differs.
+  # ============================================================
+
+  # q_m1: Mark leftmost unmarked digit in N1
+  - {state: q_m1, read: "a", next: q_m1, write: "a", move: R}
+  - {state: q_m1, read: "b", next: q_m1, write: "b", move: R}
+  - {state: q_m1, read: "0", next: q_cross, write: "a", move: R}
+  - {state: q_m1, read: "1", next: q_cross, write: "b", move: R}
+  # N1 exhausted → check if N2 also exhausted
+  - {state: q_m1, read: "#", next: q_n1end, write: "#", move: R}
+
+  # q_cross: Skip rest of N1 and '#' to reach N2
+  - {state: q_cross, read: "0", next: q_cross, write: "0", move: R}
+  - {state: q_cross, read: "1", next: q_cross, write: "1", move: R}
+  - {state: q_cross, read: "#", next: q_m2, write: "#", move: R}
+
+  # q_m2: Mark leftmost unmarked digit in N2
+  - {state: q_m2, read: "c", next: q_m2, write: "c", move: R}
+  - {state: q_m2, read: "d", next: q_m2, write: "d", move: R}
+  - {state: q_m2, read: "0", next: q_back, write: "c", move: L}
+  - {state: q_m2, read: "1", next: q_back, write: "d", move: L}
+  # N2 exhausted but N1 had digits → N1 longer → ACCEPT
+  - {state: q_m2, read: "B", next: q_acc, write: "B", move: S}
+
+  # q_back: Return to start for next length round
+  - {state: q_back, read: "0", next: q_back, write: "0", move: L}
+  - {state: q_back, read: "1", next: q_back, write: "1", move: L}
+  - {state: q_back, read: "#", next: q_back, write: "#", move: L}
+  - {state: q_back, read: "a", next: q_back, write: "a", move: L}
+  - {state: q_back, read: "b", next: q_back, write: "b", move: L}
+  - {state: q_back, read: "c", next: q_back, write: "c", move: L}
+  - {state: q_back, read: "d", next: q_back, write: "d", move: L}
+  - {state: q_back, read: "B", next: q_m1, write: "B", move: R}
+
+  # q_n1end: N1 fully marked. Check if N2 also fully marked.
+  - {state: q_n1end, read: "c", next: q_n1end, write: "c", move: R}
+  - {state: q_n1end, read: "d", next: q_n1end, write: "d", move: R}
+  # N2 also exhausted → same length → need digit comparison
+  - {state: q_n1end, read: "B", next: q_rest, write: "B", move: L}
+  # N2 has remaining digits → N2 longer → REJECT
+  - {state: q_n1end, read: "0", next: q_rej, write: "0", move: S}
+  - {state: q_n1end, read: "1", next: q_rej, write: "1", move: S}
+
+  # ============================================================
+  # PHASE 2: RESTORE MARKS
+  # Go back to start, restore a→0, b→1, c→0, d→1
+  # ============================================================
+  - {state: q_rest, read: "a", next: q_rest, write: "0", move: L}
+  - {state: q_rest, read: "b", next: q_rest, write: "1", move: L}
+  - {state: q_rest, read: "c", next: q_rest, write: "0", move: L}
+  - {state: q_rest, read: "d", next: q_rest, write: "1", move: L}
+  - {state: q_rest, read: "#", next: q_rest, write: "#", move: L}
+  - {state: q_rest, read: "B", next: q_cmp, write: "B", move: R}
+
+  # ============================================================
+  # PHASE 3: DIGIT-BY-DIGIT COMPARISON (same length, MSB first)
+  # Mark each compared digit in N1 as 'a', read its value, then compare with N2.
+  # ============================================================
+
+  # q_cmp: Read leftmost unmarked digit of N1
+  - {state: q_cmp, read: "a", next: q_cmp, write: "a", move: R}
+  - {state: q_cmp, read: "0", next: q_c0, write: "a", move: R}
+  - {state: q_cmp, read: "1", next: q_c1, write: "a", move: R}
+  # N1 fully compared → all digits equal → NOT greater → REJECT
+  - {state: q_cmp, read: "#", next: q_rej, write: "#", move: S}
+
+  # q_c0: N1 digit was 0, go to N2 to find matching digit
+  - {state: q_c0, read: "0", next: q_c0, write: "0", move: R}
+  - {state: q_c0, read: "1", next: q_c0, write: "1", move: R}
+  - {state: q_c0, read: "#", next: q_f0, write: "#", move: R}
+
+  # q_c1: N1 digit was 1, go to N2 to find matching digit
+  - {state: q_c1, read: "0", next: q_c1, write: "0", move: R}
+  - {state: q_c1, read: "1", next: q_c1, write: "1", move: R}
+  - {state: q_c1, read: "#", next: q_f1, write: "#", move: R}
+
+  # q_f0: N1 was 0. Find leftmost unmarked N2 digit.
+  - {state: q_f0, read: "c", next: q_f0, write: "c", move: R}
+  # N2=0 vs N1=0 → equal so far, continue
+  - {state: q_f0, read: "0", next: q_bk, write: "c", move: L}
+  # N2=1 vs N1=0 → N2 > N1 at this position → REJECT
+  - {state: q_f0, read: "1", next: q_rej, write: "1", move: S}
+
+  # q_f1: N1 was 1. Find leftmost unmarked N2 digit.
+  - {state: q_f1, read: "c", next: q_f1, write: "c", move: R}
+  # N2=0 vs N1=1 → N1 > N2 at this position → ACCEPT
+  - {state: q_f1, read: "0", next: q_acc, write: "0", move: S}
+  # N2=1 vs N1=1 → equal so far, continue
+  - {state: q_f1, read: "1", next: q_bk, write: "c", move: L}
+
+  # q_bk: Return to N1 for next digit comparison
+  - {state: q_bk, read: "c", next: q_bk, write: "c", move: L}
+  - {state: q_bk, read: "0", next: q_bk, write: "0", move: L}
+  - {state: q_bk, read: "1", next: q_bk, write: "1", move: L}
+  - {state: q_bk, read: "#", next: q_bk, write: "#", move: L}
+  - {state: q_bk, read: "a", next: q_cmp, write: "a", move: R}

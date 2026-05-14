@@ -1,0 +1,51 @@
+name: "string_copy"
+description: "Duplicates the input string. Example: abba -> abba#abba"
+states: [q0, q_mark_a, q_mark_b, q_go_to_end_a, q_go_to_end_b, q_return, q_cleanup, q_accept]
+input_alphabet: ["a", "b"]
+tape_alphabet: ["a", "b", "B", "#", "A", "B'"]
+blank: "B"
+start_state: q0
+accept_states: [q_accept]
+reject_states: []
+transitions:
+  # Find leftmost unmarked
+  - {state: q0, read: "a", next: q_mark_a, write: "A", move: R}
+  - {state: q0, read: "b", next: q_mark_b, write: "B'", move: R}
+  - {state: q0, read: "#", next: q_cleanup, write: "#", move: L}
+  - {state: q0, read: "B", next: q_cleanup, write: "#", move: L}
+
+  # Moving towards end for 'a'
+  - {state: q_mark_a, read: "a", next: q_mark_a, write: "a", move: R}
+  - {state: q_mark_a, read: "b", next: q_mark_a, write: "b", move: R}
+  - {state: q_mark_a, read: "#", next: q_go_to_end_a, write: "#", move: R}
+  - {state: q_mark_a, read: "B", next: q_go_to_end_a, write: "#", move: R}
+
+  # Moving towards end for 'b'
+  - {state: q_mark_b, read: "a", next: q_mark_b, write: "a", move: R}
+  - {state: q_mark_b, read: "b", next: q_mark_b, write: "b", move: R}
+  - {state: q_mark_b, read: "#", next: q_go_to_end_b, write: "#", move: R}
+  - {state: q_mark_b, read: "B", next: q_go_to_end_b, write: "#", move: R}
+
+  # Finding blank to write 'a'
+  - {state: q_go_to_end_a, read: "a", next: q_go_to_end_a, write: "a", move: R}
+  - {state: q_go_to_end_a, read: "b", next: q_go_to_end_a, write: "b", move: R}
+  - {state: q_go_to_end_a, read: "B", next: q_return, write: "a", move: L}
+
+  # Finding blank to write 'b'
+  - {state: q_go_to_end_b, read: "a", next: q_go_to_end_b, write: "a", move: R}
+  - {state: q_go_to_end_b, read: "b", next: q_go_to_end_b, write: "b", move: R}
+  - {state: q_go_to_end_b, read: "B", next: q_return, write: "b", move: L}
+
+  # Return to last marked
+  - {state: q_return, read: "a", next: q_return, write: "a", move: L}
+  - {state: q_return, read: "b", next: q_return, write: "b", move: L}
+  - {state: q_return, read: "#", next: q_return, write: "#", move: L}
+  - {state: q_return, read: "A", next: q0, write: "A", move: R}
+  - {state: q_return, read: "B'", next: q0, write: "B'", move: R}
+
+  # Cleanup: Restore A -> a, B' -> b
+  - {state: q_cleanup, read: "A", next: q_cleanup, write: "a", move: L}
+  - {state: q_cleanup, read: "B'", next: q_cleanup, write: "b", move: L}
+  - {state: q_cleanup, read: "a", next: q_cleanup, write: "a", move: L}
+  - {state: q_cleanup, read: "b", next: q_cleanup, write: "b", move: L}
+  - {state: q_cleanup, read: "B", next: q_accept, write: "B", move: R}
