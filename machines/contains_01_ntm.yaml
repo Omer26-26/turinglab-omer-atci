@@ -1,0 +1,52 @@
+# Belirsiz Turing Makinesi: '01' alt dizgisi kontrolü
+# Giriş dizgisinde '01' alt dizgisi varsa kabul eder.
+# Belirsiz olarak '01' deseninin nerede başladığını tahmin eder.
+#
+# Çalışma mantığı:
+#   q0: Tarama durumu — '0' gördüğünde ya taramaya devam eder (q0)
+#       ya da '01' deseninin başladığını tahmin eder (q1)
+#   q1: '0' okundu, şimdi '1' bekleniyor
+#   q_acc: '01' bulundu — kabul durumu
+#   q_rej: '01' bulunamadı — red durumu
+
+name: "contains_01"
+deterministic: false
+states: [q0, q1, q_acc, q_rej]
+start_state: q0
+accept_states: [q_acc]
+reject_states: [q_rej]
+blank: "B"
+
+transitions:
+  # q0 durumu: Giriş taranıyor
+  - state: q0
+    read: "0"
+    choices:
+      - {next: q0, write: "0", move: R}   # Taramaya devam et
+      - {next: q1, write: "0", move: R}   # '01' burada başlıyor olabilir — tahmin
+
+  - state: q0
+    read: "1"
+    choices:
+      - {next: q0, write: "1", move: R}   # Taramaya devam et
+
+  - state: q0
+    read: "B"
+    choices:
+      - {next: q_rej, write: "B", move: S} # Giriş bitti, '01' bulunamadı
+
+  # q1 durumu: '0' okundu, '1' bekleniyor
+  - state: q1
+    read: "1"
+    choices:
+      - {next: q_acc, write: "1", move: R} # '01' bulundu — kabul!
+
+  - state: q1
+    read: "0"
+    choices:
+      - {next: q_rej, write: "0", move: S} # '01' değil — bu tahmin başarısız
+
+  - state: q1
+    read: "B"
+    choices:
+      - {next: q_rej, write: "B", move: S} # Giriş bitti — tahmin başarısız

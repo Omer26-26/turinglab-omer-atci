@@ -1,0 +1,210 @@
+# 3-Şeritli İkili (Binary) Toplama Turing Makinesi
+# Girdi formatı (Şerit 1): N1#N2 (iki ikili sayı # ile ayrılmış)
+# Şerit 2: Çalışma şeridi (N2 buraya kopyalanır)
+# Şerit 3: Sonuç şeridi (toplam buraya yazılır)
+#
+# Algoritma:
+#   1. (q_copy) N1'i atla, # işaretinden sonra N2'yi Şerit 2'ye kopyala
+#   2. (q_find_end1) Şerit 1'de N1'in sonuna git (# işaretinden bir önceki karakter)
+#   3. (q_find_end2) Şerit 2'de N2'nin sonuna git
+#   4. (q_add_nc / q_add_c) Sağdan sola toplama yap (carry=0 / carry=1)
+#   5. (q_carry_only) Taşma bitlerini yaz, sonucu kabul et
+#
+# Not: Toplama sonucu Şerit 3'e ters sırada yazılır (sağdan sola),
+#       sonra q_rewind3 ile başa sarılır.
+
+name: "binary_addition_3tape"
+description: "3-şeritli ikili toplama: N1#N2 girdisini alır, N1+N2 sonucunu Şerit 3'e yazar"
+num_tapes: 3
+states:
+  - q_copy_scan   # N1'i atla, # ara
+  - q_copy_n2     # N2'yi Şerit 2'ye kopyala
+  - q_rewind1     # Şerit 1'i # öncesine geri sar
+  - q_rewind2     # Şerit 2'yi sona sar (önce sonuna git)
+  - q_seek_end1   # Şerit 1'de N1'in son rakamına git
+  - q_seek_end2   # Şerit 2'de N2'nin son rakamına git
+  - q_add_nc      # Toplama (carry=0)
+  - q_add_c       # Toplama (carry=1)
+  - q_carry_prop  # Sadece Şerit 1'den kalan bitleri carry ile topla
+  - q_carry_prop2 # Sadece Şerit 2'den kalan bitleri carry ile topla
+  - q_done_carry  # Son taşma bitini yaz
+  - q_copy1_nc    # Şerit 1'de kalan bitleri Şerit 3'e kopyala (carry=0)
+  - q_copy1_c     # Şerit 1'de kalan bitleri Şerit 3'e kopyala (carry=1)
+  - q_copy2_nc    # Şerit 2'de kalan bitleri Şerit 3'e kopyala (carry=0)
+  - q_copy2_c     # Şerit 2'de kalan bitleri Şerit 3'e kopyala (carry=1)
+  - q_rewind3     # Şerit 3'ü başa sar (sonuç ters yazıldı)
+  - q_accept      # Kabul durumu
+
+input_alphabet: ["0", "1", "#"]
+tape_alphabet: ["0", "1", "#", "B"]
+blank: "B"
+start_state: q_copy_scan
+accept_states: [q_accept]
+reject_states: []
+
+transitions:
+  # ============================================================
+  # AŞAMA 1: N1'i atla, #'ye kadar ilerle (Şerit 1 → sağa)
+  # ============================================================
+  - {state: q_copy_scan, read: ["0","B","B"], next: q_copy_scan, write: ["0","B","B"], move: ["R","S","S"]}
+  - {state: q_copy_scan, read: ["1","B","B"], next: q_copy_scan, write: ["1","B","B"], move: ["R","S","S"]}
+  # # bulundu → N2'yi kopyalamaya başla
+  - {state: q_copy_scan, read: ["#","B","B"], next: q_copy_n2, write: ["#","B","B"], move: ["R","S","S"]}
+
+  # ============================================================
+  # AŞAMA 2: N2'yi Şerit 2'ye kopyala
+  # ============================================================
+  - {state: q_copy_n2, read: ["0","B","B"], next: q_copy_n2, write: ["0","0","B"], move: ["R","R","S"]}
+  - {state: q_copy_n2, read: ["1","B","B"], next: q_copy_n2, write: ["1","1","B"], move: ["R","R","S"]}
+  # N2 bitti (blank) → geri sar
+  - {state: q_copy_n2, read: ["B","B","B"], next: q_rewind1, write: ["B","B","B"], move: ["L","L","S"]}
+
+  # ============================================================
+  # AŞAMA 3: Şerit 1'i geri sar - # işaretinin soluna git (N1'in son basamağı)
+  # Şerit 2'yi de geri sar (N2'nin son basamağı)
+  # ============================================================
+  # Şerit 1: N2 kısmını atla (sola git)
+  - {state: q_rewind1, read: ["0","0","B"], next: q_rewind1, write: ["0","0","B"], move: ["L","S","S"]}
+  - {state: q_rewind1, read: ["0","1","B"], next: q_rewind1, write: ["0","1","B"], move: ["L","S","S"]}
+  - {state: q_rewind1, read: ["1","0","B"], next: q_rewind1, write: ["1","0","B"], move: ["L","S","S"]}
+  - {state: q_rewind1, read: ["1","1","B"], next: q_rewind1, write: ["1","1","B"], move: ["L","S","S"]}
+  # # bulundu → bir adım daha sola (N1'in son basamağı)
+  - {state: q_rewind1, read: ["#","0","B"], next: q_seek_end1, write: ["#","0","B"], move: ["L","S","S"]}
+  - {state: q_rewind1, read: ["#","1","B"], next: q_seek_end1, write: ["#","1","B"], move: ["L","S","S"]}
+  - {state: q_rewind1, read: ["#","B","B"], next: q_seek_end1, write: ["#","B","B"], move: ["L","S","S"]}
+
+  # ============================================================
+  # AŞAMA 3b: Şimdi Şerit 1 kafa N1'in son basamağında,
+  #           Şerit 2 kafa N2'nin son basamağının 1 sağında (blank)
+  #           → Şerit 2'yi bir sola al
+  # ============================================================
+  # q_seek_end1: Şerit 1 kafası N1 son basamağında. Şerit 2'de bir sola git.
+  - {state: q_seek_end1, read: ["0","0","B"], next: q_add_nc, write: ["0","0","B"], move: ["S","S","S"]}
+  - {state: q_seek_end1, read: ["0","1","B"], next: q_add_nc, write: ["0","1","B"], move: ["S","S","S"]}
+  - {state: q_seek_end1, read: ["1","0","B"], next: q_add_nc, write: ["1","0","B"], move: ["S","S","S"]}
+  - {state: q_seek_end1, read: ["1","1","B"], next: q_add_nc, write: ["1","1","B"], move: ["S","S","S"]}
+  - {state: q_seek_end1, read: ["0","B","B"], next: q_add_nc, write: ["0","B","B"], move: ["S","S","S"]}
+  - {state: q_seek_end1, read: ["1","B","B"], next: q_add_nc, write: ["1","B","B"], move: ["S","S","S"]}
+  - {state: q_seek_end1, read: ["B","0","B"], next: q_add_nc, write: ["B","0","B"], move: ["S","S","S"]}
+  - {state: q_seek_end1, read: ["B","1","B"], next: q_add_nc, write: ["B","1","B"], move: ["S","S","S"]}
+  - {state: q_seek_end1, read: ["B","B","B"], next: q_accept, write: ["B","B","0"], move: ["S","S","S"]}
+
+  # ============================================================
+  # AŞAMA 4: Toplama – carry = 0 (q_add_nc)
+  # Her iki şeritte de rakam var: topla, sonucu Şerit 3'e yaz
+  # ============================================================
+  # 0+0+0 = 0, carry=0
+  - {state: q_add_nc, read: ["0","0","B"], next: q_add_nc, write: ["0","0","0"], move: ["L","L","L"]}
+  # 0+1+0 = 1, carry=0
+  - {state: q_add_nc, read: ["0","1","B"], next: q_add_nc, write: ["0","1","1"], move: ["L","L","L"]}
+  # 1+0+0 = 1, carry=0
+  - {state: q_add_nc, read: ["1","0","B"], next: q_add_nc, write: ["1","0","1"], move: ["L","L","L"]}
+  # 1+1+0 = 0, carry=1
+  - {state: q_add_nc, read: ["1","1","B"], next: q_add_c,  write: ["1","1","0"], move: ["L","L","L"]}
+
+  # Şerit 1 bitti (B), Şerit 2'de hâlâ rakam var → Şerit 2'yi kopyala (carry=0)
+  - {state: q_add_nc, read: ["B","0","B"], next: q_copy2_nc, write: ["B","0","0"], move: ["S","L","L"]}
+  - {state: q_add_nc, read: ["B","1","B"], next: q_copy2_nc, write: ["B","1","1"], move: ["S","L","L"]}
+
+  # Şerit 2 bitti (B), Şerit 1'de hâlâ rakam var → Şerit 1'i kopyala (carry=0)
+  - {state: q_add_nc, read: ["0","B","B"], next: q_copy1_nc, write: ["0","B","0"], move: ["L","S","L"]}
+  - {state: q_add_nc, read: ["1","B","B"], next: q_copy1_nc, write: ["1","B","1"], move: ["L","S","L"]}
+
+  # Her iki şerit de bitti → toplama tamamlandı (carry=0, ek bit yok)
+  - {state: q_add_nc, read: ["B","B","B"], next: q_rewind3, write: ["B","B","B"], move: ["S","S","R"]}
+  # Şerit 1 #'ye geldi (N1 başı geçildi) → Şerit 2'deki kalanları kopyala
+  - {state: q_add_nc, read: ["#","0","B"], next: q_copy2_nc, write: ["#","0","0"], move: ["S","L","L"]}
+  - {state: q_add_nc, read: ["#","1","B"], next: q_copy2_nc, write: ["#","1","1"], move: ["S","L","L"]}
+  - {state: q_add_nc, read: ["#","B","B"], next: q_rewind3, write: ["#","B","B"], move: ["S","S","R"]}
+
+  # ============================================================
+  # AŞAMA 5: Toplama – carry = 1 (q_add_c)
+  # ============================================================
+  # 0+0+1 = 1, carry=0
+  - {state: q_add_c, read: ["0","0","B"], next: q_add_nc, write: ["0","0","1"], move: ["L","L","L"]}
+  # 0+1+1 = 0, carry=1
+  - {state: q_add_c, read: ["0","1","B"], next: q_add_c,  write: ["0","1","0"], move: ["L","L","L"]}
+  # 1+0+1 = 0, carry=1
+  - {state: q_add_c, read: ["1","0","B"], next: q_add_c,  write: ["1","0","0"], move: ["L","L","L"]}
+  # 1+1+1 = 1, carry=1
+  - {state: q_add_c, read: ["1","1","B"], next: q_add_c,  write: ["1","1","1"], move: ["L","L","L"]}
+
+  # Şerit 1 bitti (B), Şerit 2'de rakam var → carry ile devam
+  - {state: q_add_c, read: ["B","0","B"], next: q_copy2_nc, write: ["B","0","1"], move: ["S","L","L"]}
+  - {state: q_add_c, read: ["B","1","B"], next: q_copy2_c,  write: ["B","1","0"], move: ["S","L","L"]}
+
+  # Şerit 2 bitti (B), Şerit 1'de rakam var → carry ile devam
+  - {state: q_add_c, read: ["0","B","B"], next: q_copy1_nc, write: ["0","B","1"], move: ["L","S","L"]}
+  - {state: q_add_c, read: ["1","B","B"], next: q_copy1_c,  write: ["1","B","0"], move: ["L","S","L"]}
+
+  # Her iki şerit de bitti → carry'yi yaz
+  - {state: q_add_c, read: ["B","B","B"], next: q_rewind3, write: ["B","B","1"], move: ["S","S","R"]}
+  # Şerit 1 # → Şerit 2'deki kalanları carry ile topla
+  - {state: q_add_c, read: ["#","0","B"], next: q_copy2_nc, write: ["#","0","1"], move: ["S","L","L"]}
+  - {state: q_add_c, read: ["#","1","B"], next: q_copy2_c,  write: ["#","1","0"], move: ["S","L","L"]}
+  - {state: q_add_c, read: ["#","B","B"], next: q_rewind3, write: ["#","B","1"], move: ["S","S","R"]}
+
+  # ============================================================
+  # Şerit 1 kalan bitleri kopyala (carry=0)
+  # ============================================================
+  - {state: q_copy1_nc, read: ["0","B","B"], next: q_copy1_nc, write: ["0","B","0"], move: ["L","S","L"]}
+  - {state: q_copy1_nc, read: ["1","B","B"], next: q_copy1_nc, write: ["1","B","1"], move: ["L","S","L"]}
+  - {state: q_copy1_nc, read: ["B","B","B"], next: q_rewind3,  write: ["B","B","B"], move: ["S","S","R"]}
+  - {state: q_copy1_nc, read: ["#","B","B"], next: q_rewind3,  write: ["#","B","B"], move: ["S","S","R"]}
+
+  # Şerit 1 kalan bitleri kopyala (carry=1)
+  - {state: q_copy1_c, read: ["0","B","B"], next: q_copy1_nc, write: ["0","B","1"], move: ["L","S","L"]}
+  - {state: q_copy1_c, read: ["1","B","B"], next: q_copy1_c,  write: ["1","B","0"], move: ["L","S","L"]}
+  - {state: q_copy1_c, read: ["B","B","B"], next: q_rewind3,  write: ["B","B","1"], move: ["S","S","R"]}
+  - {state: q_copy1_c, read: ["#","B","B"], next: q_rewind3,  write: ["#","B","1"], move: ["S","S","R"]}
+
+  # ============================================================
+  # Şerit 2 kalan bitleri kopyala (carry=0)
+  # ============================================================
+  - {state: q_copy2_nc, read: ["B","0","B"], next: q_copy2_nc, write: ["B","0","0"], move: ["S","L","L"]}
+  - {state: q_copy2_nc, read: ["B","1","B"], next: q_copy2_nc, write: ["B","1","1"], move: ["S","L","L"]}
+  - {state: q_copy2_nc, read: ["B","B","B"], next: q_rewind3,  write: ["B","B","B"], move: ["S","S","R"]}
+  - {state: q_copy2_nc, read: ["#","0","B"], next: q_copy2_nc, write: ["#","0","0"], move: ["S","L","L"]}
+  - {state: q_copy2_nc, read: ["#","1","B"], next: q_copy2_nc, write: ["#","1","1"], move: ["S","L","L"]}
+  - {state: q_copy2_nc, read: ["#","B","B"], next: q_rewind3,  write: ["#","B","B"], move: ["S","S","R"]}
+
+  # Şerit 2 kalan bitleri kopyala (carry=1)
+  - {state: q_copy2_c, read: ["B","0","B"], next: q_copy2_nc, write: ["B","0","1"], move: ["S","L","L"]}
+  - {state: q_copy2_c, read: ["B","1","B"], next: q_copy2_c,  write: ["B","1","0"], move: ["S","L","L"]}
+  - {state: q_copy2_c, read: ["B","B","B"], next: q_rewind3,  write: ["B","B","1"], move: ["S","S","R"]}
+  - {state: q_copy2_c, read: ["#","0","B"], next: q_copy2_nc, write: ["#","0","1"], move: ["S","L","L"]}
+  - {state: q_copy2_c, read: ["#","1","B"], next: q_copy2_c,  write: ["#","1","0"], move: ["S","L","L"]}
+  - {state: q_copy2_c, read: ["#","B","B"], next: q_rewind3,  write: ["#","B","1"], move: ["S","S","R"]}
+
+  # ============================================================
+  # AŞAMA 6: Şerit 3'ü başa sar → kabul
+  # Sonuç Şerit 3'e ters (sağdan sola) yazıldı.
+  # Şimdi Şerit 3 kafasını en sola sar.
+  # ============================================================
+  - {state: q_rewind3, read: ["B","B","0"], next: q_rewind3, write: ["B","B","0"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["B","B","1"], next: q_rewind3, write: ["B","B","1"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["#","B","0"], next: q_rewind3, write: ["#","B","0"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["#","B","1"], next: q_rewind3, write: ["#","B","1"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["0","B","0"], next: q_rewind3, write: ["0","B","0"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["0","B","1"], next: q_rewind3, write: ["0","B","1"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["1","B","0"], next: q_rewind3, write: ["1","B","0"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["1","B","1"], next: q_rewind3, write: ["1","B","1"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["0","0","0"], next: q_rewind3, write: ["0","0","0"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["0","0","1"], next: q_rewind3, write: ["0","0","1"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["0","1","0"], next: q_rewind3, write: ["0","1","0"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["0","1","1"], next: q_rewind3, write: ["0","1","1"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["1","0","0"], next: q_rewind3, write: ["1","0","0"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["1","0","1"], next: q_rewind3, write: ["1","0","1"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["1","1","0"], next: q_rewind3, write: ["1","1","0"], move: ["S","S","R"]}
+  - {state: q_rewind3, read: ["1","1","1"], next: q_rewind3, write: ["1","1","1"], move: ["S","S","R"]}
+  # Şerit 3 blank → sonuç okundu, kabul et
+  - {state: q_rewind3, read: ["B","B","B"], next: q_accept, write: ["B","B","B"], move: ["S","S","S"]}
+  - {state: q_rewind3, read: ["#","B","B"], next: q_accept, write: ["#","B","B"], move: ["S","S","S"]}
+  - {state: q_rewind3, read: ["0","B","B"], next: q_accept, write: ["0","B","B"], move: ["S","S","S"]}
+  - {state: q_rewind3, read: ["1","B","B"], next: q_accept, write: ["1","B","B"], move: ["S","S","S"]}
+  - {state: q_rewind3, read: ["0","0","B"], next: q_accept, write: ["0","0","B"], move: ["S","S","S"]}
+  - {state: q_rewind3, read: ["0","1","B"], next: q_accept, write: ["0","1","B"], move: ["S","S","S"]}
+  - {state: q_rewind3, read: ["1","0","B"], next: q_accept, write: ["1","0","B"], move: ["S","S","S"]}
+  - {state: q_rewind3, read: ["1","1","B"], next: q_accept, write: ["1","1","B"], move: ["S","S","S"]}
+  - {state: q_rewind3, read: ["#","0","B"], next: q_accept, write: ["#","0","B"], move: ["S","S","S"]}
+  - {state: q_rewind3, read: ["#","1","B"], next: q_accept, write: ["#","1","B"], move: ["S","S","S"]}

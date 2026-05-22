@@ -1,0 +1,21 @@
+name: "contains_01_multi_tape"
+description: "2-şeritli TM: Girdi dizgisinde '01' alt-dizgisi var mı? Şerit 1: girdi, Şerit 2: bayrak/çalışma."
+num_tapes: 2
+states: [q0, q_found0, q_acc, q_rej]
+input_alphabet: ["0", "1"]
+tape_alphabet: ["0", "1", "F", "B"]
+blank: "B"
+start_state: q0
+accept_states: [q_acc]
+reject_states: [q_rej]
+transitions:
+  # q0: Şerit 1'i sağa tara, '0' ara
+  # Şerit 2 kullanılmıyor ama hareket belirtilmeli
+  - {state: q0, read: ["1", "B"], next: q0, write: ["1", "B"], move: ["R", "S"]}
+  - {state: q0, read: ["0", "B"], next: q_found0, write: ["0", "F"], move: ["R", "S"]}
+  - {state: q0, read: ["B", "B"], next: q_rej, write: ["B", "B"], move: ["S", "S"]}
+
+  # q_found0: '0' bulundu, sonraki '1' mi?
+  - {state: q_found0, read: ["1", "F"], next: q_acc, write: ["1", "F"], move: ["S", "S"]}
+  - {state: q_found0, read: ["0", "F"], next: q_found0, write: ["0", "F"], move: ["R", "S"]}
+  - {state: q_found0, read: ["B", "F"], next: q_rej, write: ["B", "F"], move: ["S", "S"]}

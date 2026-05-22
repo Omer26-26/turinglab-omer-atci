@@ -1,0 +1,19 @@
+name: "contains_01_single_tape"
+description: "Tek-şeritli DTM: Girdi dizgisinde '01' alt-dizgisi var mı? Varsa kabul."
+states: [q0, q_found0, q_acc, q_rej]
+input_alphabet: ["0", "1"]
+tape_alphabet: ["0", "1", "B"]
+blank: "B"
+start_state: q0
+accept_states: [q_acc]
+reject_states: [q_rej]
+transitions:
+  # q0: Başlangıç — sağa tarayarak '0' ara
+  - {state: q0, read: "1", next: q0, write: "1", move: R}
+  - {state: q0, read: "0", next: q_found0, write: "0", move: R}
+  - {state: q0, read: "B", next: q_rej, write: "B", move: S}
+
+  # q_found0: '0' bulduk, şimdi '1' mi bakıyoruz
+  - {state: q_found0, read: "1", next: q_acc, write: "1", move: S}
+  - {state: q_found0, read: "0", next: q_found0, write: "0", move: R}
+  - {state: q_found0, read: "B", next: q_rej, write: "B", move: S}
