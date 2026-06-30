@@ -1,90 +1,83 @@
-# TuringLab 🖥️
+# TuringLab
 
-Hesaplama Kuramı dersi kapsamında geliştirilen Turing makinesi simülatörü.  
-**Selçuk Üniversitesi — Bilgisayar Mühendisliği**
+A Turing machine simulator developed for a Computation Theory course.
 
----
+**Selcuk University - Computer Engineering**
 
-## 🚀 Özellikler
+## Features
 
-- **Tek-şeritli deterministik TM** — YAML tabanlı konfigürasyon, verbose mod, history kaydı
-- **Çok-şeritli TM** — k adet şerit desteği, paralel kafa hareketi (Bonus A)
-- **Non-deterministik TM** — BFS tabanlı hesaplama ağacı keşfi (Bonus B)
-- **Karşılaştırmalı analiz** — DTM, Multi-tape ve NTM performans karşılaştırması (Bonus C)
-- **Görselleştirici** — Adım adım PNG ve animasyonlu GIF üretimi (Bonus D)
+- Single-tape deterministic Turing machine with YAML-based configuration, verbose mode, and execution history
+- Multi-tape Turing machine with support for multiple tapes and parallel head movement
+- Nondeterministic Turing machine with BFS-based computation tree exploration
+- Comparative analysis for DTM, multi-tape TM, and NTM performance
+- Visualizer that generates step-by-step PNG frames and animated GIF outputs
 
----
+## Project Structure
 
-## 📁 Proje Yapısı
-
-```
+```text
 turinglab/
 ├── __init__.py              # Public API
-├── tm_engine.py             # Tek-şeritli TM motoru (SingleTapeTM)
-├── multi_tape.py            # Çok-şeritli TM (MultiTapeTM)
-├── ntm.py                   # Non-deterministik TM (NondeterministicTM)
-└── visualizer.py            # Adım-adım görselleştirici (TuringVisualizer)
+├── tm_engine.py             # Single-tape TM engine
+├── multi_tape.py            # Multi-tape TM implementation
+├── ntm.py                   # Nondeterministic TM implementation
+└── visualizer.py            # Step-by-step visualizer
 
 machines/
-├── sample_incrementer.yaml  # Örnek: Binary increment
-├── unary_to_binary.yaml     # TM-1: Unary → Binary çevirici
-├── binary_compare.yaml      # TM-2: İkili karşılaştırıcı (N1 > N2?)
-├── string_copy.yaml         # TM-3: Dizgi kopyalayıcı (w → w#w)
-├── student_choice.yaml      # TM-4: Parantez denge kontrolü
-├── binary_addition_3tape.yaml  # Bonus A: 3-şeritli ikili toplama
-├── contains_01_ntm.yaml     # Bonus B: NTM — "01 var mı?"
-├── contains_01_single.yaml  # Bonus C: DTM — "01 var mı?"
-└── contains_01_multi.yaml   # Bonus C: Multi-tape — "01 var mı?"
+├── sample_incrementer.yaml      # Example: binary increment
+├── unary_to_binary.yaml         # TM-1: unary to binary converter
+├── binary_compare.yaml          # TM-2: binary comparator
+├── string_copy.yaml             # TM-3: string copier
+├── student_choice.yaml          # TM-4: balanced parentheses checker
+├── binary_addition_3tape.yaml   # Multi-tape binary addition
+├── contains_01_ntm.yaml         # NTM: checks whether "01" exists
+├── contains_01_single.yaml      # DTM: checks whether "01" exists
+└── contains_01_multi.yaml       # Multi-tape TM: checks whether "01" exists
 
 tests/
-├── test_tm_engine.py        # Motor birim testleri
-├── test_machines.py         # 4 TM entegrasyon testleri
-├── test_multi_tape.py       # Çok-şeritli TM testleri
-└── test_ntm.py              # NTM testleri
+├── test_tm_engine.py        # Engine unit tests
+├── test_machines.py         # Integration tests for the four machines
+├── test_multi_tape.py       # Multi-tape TM tests
+└── test_ntm.py              # NTM tests
 
 docs/
-├── design_notes.md          # TM tasarım kararları
-├── comparison_analysis.py   # Karşılaştırmalı analiz scripti
-├── comparison.png           # Performans karşılaştırma grafiği
-└── images/                  # Görselleştirici çıktıları (PNG + GIF)
+├── design_notes.md          # Design notes
+├── comparison_analysis.py   # Comparative analysis script
+├── comparison.png           # Performance comparison chart
+└── images/                  # Visualizer outputs
 ```
 
----
-
-## ⚙️ Kurulum
+## Installation
 
 ```bash
-# Python 3.10+ gereklidir
+# Python 3.10+ is required
 pip install -r requirements.txt
 
-# Bonus D (görselleştirici) için ek bağımlılıklar
+# Extra dependencies for the visualizer
 pip install Pillow imageio
 
-# Bonus C (karşılaştırmalı analiz) için
+# Extra dependency for comparative analysis
 pip install matplotlib
 ```
 
----
+## Usage
 
-## 🎮 Kullanım
-
-### Tek-Şeritli TM Çalıştırma
+### Run a Single-Tape TM
 
 ```bash
-# Komut satırından
 python -m turinglab.tm_engine machines/sample_incrementer.yaml 1011
+```
 
-# Python'dan
+```python
 from turinglab import SingleTapeTM
 
 tm = SingleTapeTM.from_yaml("machines/unary_to_binary.yaml")
 result = tm.run("11111", verbose=True)
-print(f"Sonuç: {'KABUL' if result.accepted else 'RED'}")
-print(f"Şerit: {result.final_tape}")
-print(f"Adım: {result.steps}")
+print(f"Result: {'ACCEPT' if result.accepted else 'REJECT'}")
+print(f"Tape: {result.final_tape}")
+print(f"Steps: {result.steps}")
 ```
 
-### Çok-Şeritli TM (Bonus A)
+### Multi-Tape TM
 
 ```python
 from turinglab.multi_tape import MultiTapeTM
@@ -93,17 +86,17 @@ tm = MultiTapeTM.from_yaml("machines/binary_addition_3tape.yaml")
 result = tm.run("11#01")  # 3 + 1 = 4
 ```
 
-### Non-Deterministik TM (Bonus B)
+### Nondeterministic TM
 
 ```python
 from turinglab.ntm import NondeterministicTM
 
 ntm = NondeterministicTM.from_yaml("machines/contains_01_ntm.yaml")
 result = ntm.run("1101", max_depth=50, max_branches=1000)
-print(f"Kabul yolları: {len(result.accepting_paths)}")
+print(f"Accepting paths: {len(result.accepting_paths)}")
 ```
 
-### Görselleştirici (Bonus D)
+### Visualizer
 
 ```python
 from turinglab import SingleTapeTM
@@ -117,43 +110,35 @@ vis.generate_frames("docs/images/")
 vis.generate_gif("docs/images/animation.gif")
 ```
 
----
-
-## 🧪 Testler
+## Tests
 
 ```bash
-# Tüm testleri çalıştır
 python -m pytest tests/ -v
 
-# Belirli bir modülü test et
 python -m pytest tests/test_tm_engine.py -v
 python -m pytest tests/test_machines.py -v
 python -m pytest tests/test_multi_tape.py -v
 python -m pytest tests/test_ntm.py -v
 ```
 
----
+## Comparative Analysis
 
-## 📊 Karşılaştırmalı Analiz (Bonus C)
-
-Aynı dil (`L = {w | w'de '01' var}`) üç farklı TM varyantı ile çözülmüş ve adım sayıları karşılaştırılmıştır:
+The same language, `L = {w | w contains "01"}`, is solved with three Turing machine variants and compared by step count.
 
 ```bash
 python docs/comparison_analysis.py
-# Çıktı: docs/comparison.png
+# Output: docs/comparison.png
 ```
 
-Detaylar için: [REPORT.md](REPORT.md)
+See [REPORT.md](REPORT.md) for details.
 
----
+## Design Notes
 
-## 📝 Tasarım Kararları
+The tape is represented with `Dict[int, str]`, which provides negative index support and models an infinite tape.
 
-Şerit `Dict[int, str]` ile temsil edilir — negatif indeks desteği ve sonsuz şerit illüzyonu sağlar.  
-Detaylar: [docs/design_notes.md](docs/design_notes.md) · [REPORT.md](REPORT.md)
+More details: [docs/design_notes.md](docs/design_notes.md) and [REPORT.md](REPORT.md).
 
----
+## License
 
-## 📄 Lisans
+This project was prepared as a final assignment for a Computation Theory course at Selcuk University.
 
-Bu proje Selçuk Üniversitesi Hesaplama Kuramı dersi final ödevi kapsamında hazırlanmıştır.
