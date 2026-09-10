@@ -52,12 +52,11 @@ docs/
 # Python 3.10+ is required
 pip install -r requirements.txt
 
-# Extra dependencies for the visualizer
-pip install Pillow imageio
-
-# Extra dependency for comparative analysis
-pip install matplotlib
+# Optional visualizer and comparative-analysis dependencies
+pip install -r requirements-visualization.txt
 ```
+
+The core simulators can be imported without the visualization dependencies. `TuringVisualizer` is loaded lazily when requested.
 
 ## Usage
 
@@ -140,5 +139,5 @@ More details: [docs/design_notes.md](docs/design_notes.md) and [REPORT.md](REPOR
 
 ## License
 
-This project was prepared as a final assignment for a Computation Theory course at Selcuk University.
+This project is licensed under the [MIT License](LICENSE).
 

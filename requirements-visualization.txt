@@ -1,0 +1,5 @@
+-r requirements.txt
+
+Pillow>=10.0,<13.0
+imageio>=2.31,<3.0
+matplotlib>=3.8,<4.0
